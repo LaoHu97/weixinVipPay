@@ -1,4 +1,4 @@
-# my-project
+# 一个微信支付的前端页面，包括会员折扣计算以及优惠券选择
 
 > A Vue.js project
 
