@@ -1,6 +1,6 @@
 <template>
 <div class="index">
-  <h2>{{title}}</h2>
+  <h3>{{title}}</h3>
   <group>
     <keyboardinput @input="logomsg"></keyboardinput>
   </group>
@@ -17,7 +17,7 @@
     </cell>
     <cell title="积分抵现">
       <x-switch slot v-model="bounSwitch" title="" :disabled="bounsDisabled" prevent-default @on-click="bounsClick" style="padding:0"></x-switch>
-      <span slot="inline-desc">共{{bouns}}积分，可用{{bounsAvailable}}积分，抵<span  style="color:#f74c31;">￥{{deductibleAmount}}</span></span>
+      <span slot="inline-desc">共{{bouns}}积分，可用{{bounsAvailable}}积分，抵<span  style="color:#f74c31;">￥-{{deductibleAmount}}</span></span>
     </cell>
     <!-- <x-switch  class="vip_list_fu" title="会员卡支付" v-model="balance" :inline-desc="'共5888积分，可用5000积分，抵￥50.00'" @on-change="balanceClick"></x-switch> -->
     <!-- <x-switch  class="vip_list_fu" title="积分抵现" :inline-desc="'共5888积分，可用5000积分，抵￥50.00'"></x-switch> -->
@@ -46,7 +46,9 @@
 
 <script>
 import currency from 'currency'
-import { getPayMemInfoNew } from '../api.js'
+import {
+  getPayMemInfoNew
+} from '../api.js'
 import keyboardinput from '../components/KeyboardInput.vue'
 import popupvoucher from '../components/popupVoucher.vue'
 import {
@@ -89,11 +91,11 @@ export default {
       integralShow: false,
       badgeText: '1张可用',
 
-      title:'',
+      title: '',
 
-      consumeAmount:'',//消费金额
+      consumeAmount: '', //消费金额
       payAmount: '0.00', //应付金额
-      deductibleAmount:'0.00',//积分抵扣多少钱
+      deductibleAmount: '0.00', //积分抵扣多少钱
 
       discountText: '', //会员折扣
       discount: '0.00', //会员折扣应减金额
@@ -105,50 +107,64 @@ export default {
       payment: '微信支付', //支付方式
 
       bouns: '', //会员积分
-      bounSwitch:false,//积分抵现默认关闭
+      bounSwitch: false, //积分抵现默认关闭
       bounsAvailable: '0', //可用积分
       bounsDisabled: true, //积分是否可用
       //积分使用条件
-      bounsCondition:{
-        least_money_to_use_bonus:'',//满多少可用，单位分
-        max_reduce_bonus:''//单笔最多使用，单位分
+      bounsCondition: {
+        least_money_to_use_bonus: '', //满多少可用，单位分
+        max_reduce_bonus: '' //单笔最多使用
       },
       //积分抵扣规则
-      bounsRule:{
-        cost_bonus_unit:'',//每使用xx积分
-        reduce_money:''//抵扣xx元
+      bounsRule: {
+        cost_bonus_unit: '', //每使用xx积分
+        reduce_money: '' //抵扣xx元
       },
     }
   },
   watch: {　　　
     //应付金额发生变化会调用此方法
     payAmount(curVal, oldVal) {
-      let bounsAvailable = parseInt((this.payAmount*this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
-      if (this.bounsCondition.max_reduce_bonus>=bounsAvailable) {
-        if (this.bouns>=bounsAvailable) {
-          this.bounsAvailable = bounsAvailable;
-          this.deductibleAmount = String(currency((bounsAvailable*this.bounsRule.reduce_money)/this.bounsRule.cost_bonus_unit));
-        }else {
-          this.bounsAvailable = this.bouns;
-          this.deductibleAmount = String(currency((this.bouns/this.bounsRule.cost_bonus_unit)*this.bounsRule.reduce_money));
-        }
-      }else {
-        this.bounsAvailable = this.bounsCondition.max_reduce_bonus;
-        this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus/this.bounsRule.cost_bonus_unit)*this.bounsRule.reduce_money));
-      }
-      if (curVal == "0.00") {　　　
-        this.balance = false,　
-        this.bounSwitch = false,　
-        this.balanceDisabled = true;
-        this.bounsDisabled = true;　
-      } else {
-        this.balanceDisabled = false;
-        this.bounsDisabled = false;
-      }
+
     },
     //输入金额发生变化会调用此方法
-    consumeAmount(curVal, oldVal){
-
+    consumeAmount(curVal, oldVal) {
+      //当前金额最多可用积分为当前 “（应付金额*每使用xx积分）/抵扣XX元 ”
+      let bounsAvailable = parseInt((this.payAmount * this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
+      //如果单笔最多使用积分大于等于当前金额最多可用积分并且如果会员积分大于等于当前金额最多可用积分
+      if (this.bounsCondition.max_reduce_bonus >= bounsAvailable && this.bouns >= bounsAvailable) {
+        //可用积分等于当前金额最多可用积分
+        this.bounsAvailable = bounsAvailable;
+        //当前抵扣金额等于“（当前金额最多可用积分*抵扣XX元）/每使用xx积分”
+        this.deductibleAmount = String(currency((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit));
+        //如果会员积分小于当前金额最多可用积分
+      } else if (bounsAvailable > this.bouns) {
+        //可用积分等于会员积分
+        this.bounsAvailable = this.bouns;
+        //抵扣金额等于（会员积分/每使用xx积分）*抵扣XX元
+        this.deductibleAmount = String(currency((this.bouns / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
+      } else {
+        //可用积分等于单笔最多使用积分
+        this.bounsAvailable = this.bounsCondition.max_reduce_bonus;
+        //抵扣金额等于（单笔最多使用积分/每使用xx积分）*抵扣XX元
+        this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
+      }
+      //如果输入金额等于“0.00”
+      if (curVal == "0.00") {　　
+        //会员余额关闭
+        this.balance = false, 　
+          //积分抵现关闭
+          this.bounSwitch = false, 　
+          //会员余额不可用
+          this.balanceDisabled = true;
+        //积分抵现不可用
+        this.bounsDisabled = true;　
+      } else {
+        //会员余额可用
+        this.balanceDisabled = false;
+        //积分抵现可用
+        this.bounsDisabled = false;
+      }
     }
   },
   created() {
@@ -194,16 +210,22 @@ export default {
         }
       })
     },
+    //积分抵现Switch
     bounsClick(newVal, oldVal) {
+      //如果开关不可用，提示*****
       if (this.bounsDisabled) {
         this.$vux.toast.text('请输入金额', 'bottom')
-      }else if(this.consumeAmount<this.bounsCondition.least_money_to_use_bonus){
-        this.$vux.toast.text('满'+this.bounsCondition.least_money_to_use_bonus+'元可用', 'bottom')
-      }else {
+        //否则如果输入金额小于“满多少金额可用”，提示****
+      } else if (this.consumeAmount < this.bounsCondition.least_money_to_use_bonus) {
+        this.$vux.toast.text('满' + this.bounsCondition.least_money_to_use_bonus + '元可用', 'bottom')
+      } else {
+        //打开开关或者关闭开关
         this.bounSwitch = newVal;
         if (newVal) {
+          //应付金额为当前应付金额减去积分抵现金额
           this.payAmount = String(currency(this.payAmount).subtract(this.deductibleAmount));
-        }else {
+        } else {
+          //应付金额为当前应付金额加上积分抵现金额
           this.payAmount = String(currency(this.payAmount).add(this.deductibleAmount));
         }
       }
@@ -246,17 +268,21 @@ export default {
     integralClick() {
       this.integralShow = true;
     },
-    integralSubmilt(value){
+    integralSubmilt(value) {
       this.integralShow = false;
       console.log(value);
     },
     logomsg(msg) {
-      this.consumeAmount=msg;
+      //当前输入值
+      this.consumeAmount = msg;
+      //计算出折扣后多少
       let _val = currency(msg).multiply(this.discountText);
       if (isNaN(_val)) {
         return
       }
+      //折扣后减多少钱
       this.discount = String(currency(msg).subtract(_val));
+      //计算出应付金额
       this.payAmount = String(_val);
     }
   },
@@ -269,7 +295,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="less" scoped>
 @import '~vux/src/styles/1px.less';
-.index h2 {
+.index h3 {
     text-align: center;
 }
 .flex-demo {
@@ -294,5 +320,4 @@ export default {
 .vip_list_fu {
     height: 57px;
 }
-
 </style>

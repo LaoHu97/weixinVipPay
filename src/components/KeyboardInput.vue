@@ -19,6 +19,7 @@
 			display: flex;
 			.input {
 				font-size: 20px;
+				font-weight: bolder;
 				color: #313131;
 			}
 			.cursor {
