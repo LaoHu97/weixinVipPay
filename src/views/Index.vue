@@ -1,6 +1,6 @@
 <template>
 <div class="index">
-  <h2>西安万鼎</h2>
+  <h2>{{title}}</h2>
   <group>
     <keyboardinput @input="logomsg"></keyboardinput>
   </group>
@@ -12,12 +12,12 @@
       <span slot style="color:#f74c31;">￥-{{discount}}</span>
     </cell>
     <cell title="会员卡支付">
-      <x-switch slot v-model="balance" title='' :disabled="balanceDisabled" prevent-default @on-click="balanceClick"></x-switch>
+      <x-switch slot v-model="balance" title='' :disabled="balanceDisabled" prevent-default @on-click="balanceClick" style="padding:0"></x-switch>
       <span slot="inline-desc">可用余额<span  style="color:#f74c31;">￥{{availableBalance}}</span></span>
     </cell>
     <cell title="积分抵现">
-      <x-switch slot v-model="bounSwitch" title="" :disabled="bounsDisabled" prevent-default @on-click="bounsClick"></x-switch>
-      <span slot="inline-desc">共{{bouns}}积分，可用{{bounsAvailable}}积分，抵￥{{deductibleAmount}}<span  style="color:#f74c31;"></span></span>
+      <x-switch slot v-model="bounSwitch" title="" :disabled="bounsDisabled" prevent-default @on-click="bounsClick" style="padding:0"></x-switch>
+      <span slot="inline-desc">共{{bouns}}积分，可用{{bounsAvailable}}积分，抵<span  style="color:#f74c31;">￥{{deductibleAmount}}</span></span>
     </cell>
     <!-- <x-switch  class="vip_list_fu" title="会员卡支付" v-model="balance" :inline-desc="'共5888积分，可用5000积分，抵￥50.00'" @on-change="balanceClick"></x-switch> -->
     <!-- <x-switch  class="vip_list_fu" title="积分抵现" :inline-desc="'共5888积分，可用5000积分，抵￥50.00'"></x-switch> -->
@@ -30,23 +30,7 @@
   </group>
   <div v-transfer-dom>
     <popup v-model="integralShow" position="right" width="100%">
-      <tab>
-        <tab-item selected @on-item-click="onItemClick">可用优惠券</tab-item>
-        <tab-item @on-item-click="onItemClick">不可用优惠券</tab-item>
-      </tab>
-      <checker v-model="inlineDescListValue" default-item-class="demo-item" selected-item-class="demo-item-selected" disabled-item-class="demo-item-disabled">
-        <checker-item :value="item" v-for="(item, index) in inlineDescList" :key="index" @on-item-click="onItemCheckerClick" style="margin-top:15px;">
-          <div class="checker_item_left">
-            <icon type="circle"></icon>
-          </div>
-          <div class="checker_item_right">
-
-          </div>
-        </checker-item>
-      </checker>
-      <div style="padding: 15px;">
-        <x-button @click.native="integralShow = false" type="primary">确认</x-button>
-      </div>
+      <popupvoucher @integralSubmilt="integralSubmilt"></popupvoucher>
     </popup>
   </div>
   <flexbox style="position: fixed;bottom:0;">
@@ -62,10 +46,9 @@
 
 <script>
 import currency from 'currency'
-import {
-  getPayMemInfoNew
-} from '../api.js'
+import { getPayMemInfoNew } from '../api.js'
 import keyboardinput from '../components/KeyboardInput.vue'
+import popupvoucher from '../components/popupVoucher.vue'
 import {
   XInput,
   Group,
@@ -77,16 +60,12 @@ import {
   TransferDom,
   Popup,
   XSwitch,
-  Tab,
-  TabItem,
-  Checker,
-  CheckerItem,
   Flexbox,
   FlexboxItem,
-  Icon
 } from 'vux'
 export default {
   name: 'KeyboardInput',
+  name: 'popupVoucher',
   directives: {
     TransferDom
   },
@@ -101,19 +80,16 @@ export default {
     Popup,
     XSwitch,
     keyboardinput,
-    Tab,
-    TabItem,
-    Checker,
-    CheckerItem,
     Flexbox,
     FlexboxItem,
-    Icon
+    popupvoucher
   },
   data() {
     return {
-      maskValue: '123123',
       integralShow: false,
       badgeText: '1张可用',
+
+      title:'',
 
       consumeAmount:'',//消费金额
       payAmount: '0.00', //应付金额
@@ -142,50 +118,33 @@ export default {
         cost_bonus_unit:'',//每使用xx积分
         reduce_money:''//抵扣xx元
       },
-      inlineDescList: [{
-          key: '1',
-          value: '1',
-          inlineDesc: 'Tiger is the king of mountain'
-        },
-        {
-          key: '2',
-          value: '2',
-          inlineDesc: 'Lion is the king of woods'
-        },
-        {
-          key: '3',
-          value: '3'
-        }
-      ],
-      inlineDescListValue: [],
-
     }
   },
   watch: {　　　
     //应付金额发生变化会调用此方法
-    payAmount(curVal, oldVal) {　　
+    payAmount(curVal, oldVal) {
       let bounsAvailable = parseInt((this.payAmount*this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
       if (this.bounsCondition.max_reduce_bonus>=bounsAvailable) {
         if (this.bouns>=bounsAvailable) {
           this.bounsAvailable = bounsAvailable;
-          this.deductibleAmount = (bounsAvailable*this.bounsRule.reduce_money)/this.bounsRule.cost_bonus_unit;
+          this.deductibleAmount = String(currency((bounsAvailable*this.bounsRule.reduce_money)/this.bounsRule.cost_bonus_unit));
         }else {
           this.bounsAvailable = this.bouns;
-          this.deductibleAmount = (this.bouns/this.bounsRule.cost_bonus_unit)*this.bounsRule.reduce_money;
+          this.deductibleAmount = String(currency((this.bouns/this.bounsRule.cost_bonus_unit)*this.bounsRule.reduce_money));
         }
       }else {
         this.bounsAvailable = this.bounsCondition.max_reduce_bonus;
-        this.deductibleAmount = (this.bounsCondition.max_reduce_bonus/this.bounsRule.cost_bonus_unit)*this.bounsRule.reduce_money;
+        this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus/this.bounsRule.cost_bonus_unit)*this.bounsRule.reduce_money));
       }
       if (curVal == "0.00") {　　　
         this.balance = false,　
         this.bounSwitch = false,　
         this.balanceDisabled = true;
         this.bounsDisabled = true;　
-      } else {　　　　
+      } else {
         this.balanceDisabled = false;
         this.bounsDisabled = false;
-      }　　　
+      }
     },
     //输入金额发生变化会调用此方法
     consumeAmount(curVal, oldVal){
@@ -222,6 +181,7 @@ export default {
           message
         } = res;
         if (status == 200) {
+          this.title = res.data.storeName;
           this.discountText = res.data.discount;
           this.availableBalance = String(currency(res.data.balance));
           this.bouns = res.data.bouns;
@@ -234,23 +194,17 @@ export default {
         }
       })
     },
-    onItemCheckerClick(itemValue, itemDisabled) {
-
-    },
-    submit() {
-      console.log("123");
-    },
-    onItemClick(index) {
-      console.log(index);
-    },
     bounsClick(newVal, oldVal) {
       if (this.bounsDisabled) {
         this.$vux.toast.text('请输入金额', 'bottom')
+      }else if(this.consumeAmount<this.bounsCondition.least_money_to_use_bonus){
+        this.$vux.toast.text('满'+this.bounsCondition.least_money_to_use_bonus+'元可用', 'bottom')
       }else {
-        if (this.consumeAmount<this.bounsCondition.least_money_to_use_bonus) {
-          this.$vux.toast.text('满'+this.bounsCondition.least_money_to_use_bonus+'元可用', 'bottom')
+        this.bounSwitch = newVal;
+        if (newVal) {
+          this.payAmount = String(currency(this.payAmount).subtract(this.deductibleAmount));
         }else {
-          this.bounSwitch = newVal;
+          this.payAmount = String(currency(this.payAmount).add(this.deductibleAmount));
         }
       }
     },
@@ -291,6 +245,10 @@ export default {
     },
     integralClick() {
       this.integralShow = true;
+    },
+    integralSubmilt(value){
+      this.integralShow = false;
+      console.log(value);
     },
     logomsg(msg) {
       this.consumeAmount=msg;
@@ -336,32 +294,5 @@ export default {
 .vip_list_fu {
     height: 57px;
 }
-.vux-tab .vux-tab-item.vux-tab-selected {
-    color: #FF9900;
-    border-bottom: 3px solid #FF9900;
-}
-.demo-item {
-    width: 100%;
-    height: 120px;
-}
 
-.demo-item .checker_item_left {
-    display: inline-block;
-    height: 120px;
-    line-height: 120px;
-    width: 10%;
-}
-.demo-item .checker_item_right {
-    height: 100%;
-    width: 85%;
-    float: right;
-    background-color: #FFBE00;
-    margin-right: 15px;
-}
-.demo-item-selected .checker_item_left i {
-    color: #09BB07;
-}
-.demo-item-selected .checker_item_left .weui-icon-circle:before {
-    content: "\EA06";
-}
 </style>

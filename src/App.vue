@@ -14,7 +14,4 @@ export default {
 p{
   margin: 0;
 }
-.vux-tab-ink-bar{
-  background-color: #FF9900!important;
-}
 </style>
