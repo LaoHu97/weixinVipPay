@@ -19,8 +19,6 @@
       <x-switch slot v-model="bounSwitch" title="" :disabled="bounsDisabled" prevent-default @on-click="bounsClick" style="padding:0"></x-switch>
       <span slot="inline-desc">共{{bouns}}积分，可用{{bounsAvailable}}积分，抵<span  style="color:#f74c31;">￥-{{deductibleAmount}}</span></span>
     </cell>
-    <!-- <x-switch  class="vip_list_fu" title="会员卡支付" v-model="balance" :inline-desc="'共5888积分，可用5000积分，抵￥50.00'" @on-change="balanceClick"></x-switch> -->
-    <!-- <x-switch  class="vip_list_fu" title="积分抵现" :inline-desc="'共5888积分，可用5000积分，抵￥50.00'"></x-switch> -->
     <cell class="vip_list" is-link @click.native="integralClick">
       <span slot="title"><span style="vertical-align:middle;">优惠券抵扣</span>
       <badge :text="badgeText" style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge>
@@ -261,21 +259,6 @@ export default {
             this.payment = "微信支付";
           }
         }
-        // this.balance=newVal;
-        // if (newVal) {
-        //   if (this.payAmount<=this.availableBalance) {
-        //     this.memberBalance=String(currency(this.availableBalance).subtract(this.payAmount));
-        //     this.payAmount="0.00";
-        //   }else {
-        //     this.payAmount = String(currency(this.payAmount).subtract(this.availableBalance));
-        //   }
-        // }else {
-        //   if (this.payAmount<=this.availableBalance) {
-        //     this.payAmount = String(currency(this.availableBalance).subtract(this.memberBalance));
-        //   }else {
-        //     this.payAmount = String(currency(this.payAmount).add(this.availableBalance));
-        //   }
-        // }
       }
     },
     integralClick() {
