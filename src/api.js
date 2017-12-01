@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-let base = "http://test.weupay.com";
+let base = process.env.API_ROOT;
 
 //初始化查询
 export const getPayMemInfoNew = params => { return axios.post(`${base}/pay/cashier/getPayMemInfoNew`, params).then(res => res.data); };
