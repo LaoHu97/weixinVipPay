@@ -139,7 +139,7 @@ export default {
         this.deductibleAmount = String(currency((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit));
         //如果会员积分小于当前金额最多可用积分
       } else if (bounsAvailable > this.bouns) {
-        //可用积分等于会员积分
+        //可用积分等于会员积分123
         this.bounsAvailable = this.bouns;
         //抵扣金额等于（会员积分/每使用xx积分）*抵扣XX元
         this.deductibleAmount = String(currency((this.bouns / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
