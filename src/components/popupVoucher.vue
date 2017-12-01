@@ -21,7 +21,17 @@
 </template>
 
 <script>
-import { Tab, TabItem, Divider, XButton, Checker, CheckerItem, Flexbox, FlexboxItem, Icon} from 'vux'
+import {
+  Tab,
+  TabItem,
+  Divider,
+  XButton,
+  Checker,
+  CheckerItem,
+  Flexbox,
+  FlexboxItem,
+  Icon
+} from 'vux'
 export default {
   components: {
     Tab,
@@ -34,26 +44,29 @@ export default {
     FlexboxItem,
     Icon,
   },
-  data () {
+  data() {
     return {
       inlineDescListValue: [],
-      inlineDescList: [{
-          key: '1',
-          value: '1',
-          inlineDesc: 'Tiger is the king of mountain'
-        },
-        {
-          key: '2',
-          value: '2',
-          inlineDesc: 'Lion is the king of woods'
-        },
-        {
-          key: '3',
-          value: '3'
-        }
-      ],
     }
   },
+  props: {
+    inlineDescList: Array
+  },
+  // [{
+  //     key: '1',
+  //     value: '1',
+  //     inlineDesc: 'Tiger is the king of mountain'
+  //   },
+  //   {
+  //     key: '2',
+  //     value: '2',
+  //     inlineDesc: 'Lion is the king of woods'
+  //   },
+  //   {
+  //     key: '3',
+  //     value: '3'
+  //   }
+  // ],
   methods: {
     onItemCheckerClick(itemValue, itemDisabled) {
 
@@ -61,10 +74,13 @@ export default {
     onItemClick(index) {
       console.log(index);
     },
-    integralSubmilt(){
+    integralSubmilt() {
       let value = this.inlineDescListValue;
-      this.$emit('integralSubmilt',value);
+      this.$emit('integralSubmilt', value);
     }
+  },
+  mounted() {
+
   }
 }
 </script>

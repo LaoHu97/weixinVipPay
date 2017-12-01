@@ -30,7 +30,7 @@
   </group>
   <div v-transfer-dom>
     <popup v-model="integralShow" position="right" width="100%">
-      <popupvoucher @integralSubmilt="integralSubmilt"></popupvoucher>
+      <popupvoucher @integralSubmilt="integralSubmilt" :inlineDescList="inlineDescList"></popupvoucher>
     </popup>
   </div>
   <flexbox style="position: fixed;bottom:0;">
@@ -88,6 +88,19 @@ export default {
   },
   data() {
     return {
+      inlineDescList: [{
+        key: '1',
+        value: '1',
+        inlineDesc: 'Tiger is the king of mountain'
+      }, {
+        key: '2',
+        value: '2',
+        inlineDesc: 'Lion is the king of woods'
+      }, {
+        key: '3',
+        value: '3'
+      }],
+
       integralShow: false,
       badgeText: '1张可用',
 
@@ -139,7 +152,7 @@ export default {
         this.deductibleAmount = String(currency((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit));
         //如果会员积分小于当前金额最多可用积分
       } else if (bounsAvailable > this.bouns) {
-        //可用积分等于会员积分
+        //可用积分等于会员积分123
         this.bounsAvailable = this.bouns;
         //抵扣金额等于（会员积分/每使用xx积分）*抵扣XX元
         this.deductibleAmount = String(currency((this.bouns / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
