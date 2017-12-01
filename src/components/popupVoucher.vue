@@ -50,23 +50,12 @@ export default {
     }
   },
   props: {
+    /**
+     * [inlineDescList description]
+     * @type {[type=Array]}
+     */
     inlineDescList: Array
   },
-  // [{
-  //     key: '1',
-  //     value: '1',
-  //     inlineDesc: 'Tiger is the king of mountain'
-  //   },
-  //   {
-  //     key: '2',
-  //     value: '2',
-  //     inlineDesc: 'Lion is the king of woods'
-  //   },
-  //   {
-  //     key: '3',
-  //     value: '3'
-  //   }
-  // ],
   methods: {
     onItemCheckerClick(itemValue, itemDisabled) {
 

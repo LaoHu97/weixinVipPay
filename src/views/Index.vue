@@ -19,7 +19,7 @@
       <x-switch slot v-model="bounSwitch" title="" :disabled="bounsDisabled" prevent-default @on-click="bounsClick" style="padding:0"></x-switch>
       <span slot="inline-desc">共{{bouns}}积分，可用{{bounsAvailable}}积分，抵<span  style="color:#f74c31;">￥-{{deductibleAmount}}</span></span>
     </cell>
-    <cell class="vip_list" is-link @click.native="integralClick">
+    <cell class="vip_list" is-link @click.native="integralClick()">
       <span slot="title"><span style="vertical-align:middle;">优惠券抵扣</span>
       <badge :text="badgeText" style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge>
       </span>
@@ -163,13 +163,13 @@ export default {
       //如果输入金额等于“0.00”
       if (curVal == "0.00") {　　
         //会员余额关闭
-        this.balance = false, 　
+        this.balance = false,
           //积分抵现关闭
-          this.bounSwitch = false, 　
+          this.bounSwitch = false,
           //会员余额不可用
           this.balanceDisabled = true;
         //积分抵现不可用
-        this.bounsDisabled = true;　
+        this.bounsDisabled = true;
       } else {
         //会员余额可用
         this.balanceDisabled = false;
@@ -184,6 +184,9 @@ export default {
     // console.log(this.$route.query.mid);
   },
   methods: {
+    submit() {
+      console.log(this.$wechat);
+    },
     //初始化方法
     Initialization() {
       let para = {
@@ -261,6 +264,7 @@ export default {
         }
       }
     },
+    //点击优惠券调用方法
     integralClick() {
       this.integralShow = true;
     },

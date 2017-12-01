@@ -4,11 +4,16 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import  { ToastPlugin } from 'vux'
+import { WechatPlugin } from 'vux'
+Vue.use(WechatPlugin)
 Vue.use(ToastPlugin)
 const FastClick = require('fastclick')
 FastClick.attach(document.body)
 
 Vue.config.productionTip = false
+
+console.log(Vue.wechat);
+
 
 /* eslint-disable no-new */
 new Vue({
