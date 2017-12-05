@@ -10,7 +10,22 @@
           <icon type="circle"></icon>
         </div>
         <div class="checker_item_right">
-
+          <flexbox>
+            <flexbox-item :span="4">
+              <div class="amount">
+                <span>￥</span>{{item.cash_reduce_cost}}
+              </div>
+            </flexbox-item>
+            <flexbox-item>
+              <div class="text">
+                  <div>
+                    <em>折扣券</em>
+                    <span>{{item.title}}</span>
+                  </div>
+                  <p>{{item.start_time}} - {{item.end_time}}</p>
+              </div>
+            </flexbox-item>
+          </flexbox>
         </div>
       </checker-item>
     </checker>
@@ -21,6 +36,9 @@
 </template>
 
 <script>
+import {
+  dateFormat
+} from 'vux'
 import {
   Tab,
   TabItem,
@@ -46,7 +64,7 @@ export default {
   },
   data() {
     return {
-      inlineDescListValue: [],
+      inlineDescListValue: []
     }
   },
   props: {
@@ -68,9 +86,7 @@ export default {
       this.$emit('integralSubmilt', value);
     }
   },
-  mounted() {
-
-  }
+  mounted() {}
 }
 </script>
 
@@ -95,12 +111,49 @@ export default {
     width: 85%;
     float: right;
     background-color: #FFBE00;
+    -webkit-filter: grayscale(100%);
+    opacity: 0.8;
     margin-right: 15px;
+    border-radius: 5px;
 }
 .demo-item-selected .checker_item_left i {
     color: #09BB07;
 }
 .demo-item-selected .checker_item_left .weui-icon-circle:before {
     content: "\EA06";
+}
+.demo-item-selected .checker_item_right{
+  -webkit-filter: grayscale(0%);
+  opacity: 1;
+}
+.amount{
+  color: #fff;
+  font-size:45px;
+  line-height: 120px;
+}
+.amount span{
+  font-size: 18px;
+  line-height: 18px;
+  display: block;
+  float: left;
+  margin-top: 40px;
+}
+.text{
+  height: 120px;
+  color: #fff;
+}
+.text em{
+  background-color: #f00;
+  font-size: 14px;
+  font-style: normal;
+  padding: 3px;
+  border-radius: 5px;
+}
+.text div{
+  padding-top: 32px;
+}
+.text p{
+  font-size: 12px;
+  padding-top: 20px;
 }
 </style>

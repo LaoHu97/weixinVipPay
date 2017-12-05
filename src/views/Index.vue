@@ -21,9 +21,9 @@
     </cell>
     <cell class="vip_list" is-link @click.native="integralClick()">
       <span slot="title"><span style="vertical-align:middle;">优惠券抵扣</span>
-      <badge :text="badgeText" style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge>
+      <!-- <badge :text="badgeText" style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge> -->
       </span>
-      <span slot style="color:#666;">未使用</span>
+      <span slot style="color:#666;" ref="redCoupon">{{coupon}}</span>
     </cell>
   </group>
   <div v-transfer-dom>
@@ -45,7 +45,8 @@
 <script>
 import currency from 'currency'
 import {
-  getPayMemInfoNew
+  getPayMemInfoNew,
+  queryCoupon
 } from '../api.js'
 import keyboardinput from '../components/KeyboardInput.vue'
 import popupvoucher from '../components/popupVoucher.vue'
@@ -86,18 +87,7 @@ export default {
   },
   data() {
     return {
-      inlineDescList: [{
-        key: '1',
-        value: '1',
-        inlineDesc: 'Tiger is the king of mountain'
-      }, {
-        key: '2',
-        value: '2',
-        inlineDesc: 'Lion is the king of woods'
-      }, {
-        key: '3',
-        value: '3'
-      }],
+      inlineDescList: [],
 
       integralShow: false,
       badgeText: '1张可用',
@@ -131,6 +121,8 @@ export default {
         cost_bonus_unit: '', //每使用xx积分
         reduce_money: '' //抵扣xx元
       },
+      coupon: '未使用',
+      amountCoupon: ''
     }
   },
   watch: {　　　
@@ -140,26 +132,7 @@ export default {
     },
     //输入金额发生变化会调用此方法
     consumeAmount(curVal, oldVal) {
-      //当前金额最多可用积分为当前 “（应付金额*每使用xx积分）/抵扣XX元 ”
-      let bounsAvailable = parseInt((this.payAmount * this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
-      //如果单笔最多使用积分大于等于当前金额最多可用积分并且如果会员积分大于等于当前金额最多可用积分
-      if (this.bounsCondition.max_reduce_bonus >= bounsAvailable && this.bouns >= bounsAvailable) {
-        //可用积分等于当前金额最多可用积分
-        this.bounsAvailable = bounsAvailable;
-        //当前抵扣金额等于“（当前金额最多可用积分*抵扣XX元）/每使用xx积分”
-        this.deductibleAmount = String(currency((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit));
-        //如果会员积分小于当前金额最多可用积分
-      } else if (bounsAvailable > this.bouns) {
-        //可用积分等于会员积分123
-        this.bounsAvailable = this.bouns;
-        //抵扣金额等于（会员积分/每使用xx积分）*抵扣XX元
-        this.deductibleAmount = String(currency((this.bouns / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
-      } else {
-        //可用积分等于单笔最多使用积分
-        this.bounsAvailable = this.bounsCondition.max_reduce_bonus;
-        //抵扣金额等于（单笔最多使用积分/每使用xx积分）*抵扣XX元
-        this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
-      }
+      this.consumeAmountDeputy();
       //如果输入金额等于“0.00”
       if (curVal == "0.00") {　　
         //会员余额关闭
@@ -184,8 +157,30 @@ export default {
     // console.log(this.$route.query.mid);
   },
   methods: {
+    consumeAmountDeputy() {
+      //当前金额最多可用积分为当前 “（应付金额*每使用xx积分）/抵扣XX元 ”
+      let bounsAvailable = parseInt((this.payAmount * this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
+      //如果单笔最多使用积分大于等于当前金额最多可用积分并且如果会员积分大于等于当前金额最多可用积分
+      if (this.bounsCondition.max_reduce_bonus >= bounsAvailable && this.bouns >= bounsAvailable) {
+        //可用积分等于当前金额最多可用积分
+        this.bounsAvailable = bounsAvailable;
+        //当前抵扣金额等于“（当前金额最多可用积分*抵扣XX元）/每使用xx积分”
+        this.deductibleAmount = String(currency((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit));
+        //如果会员积分小于当前金额最多可用积分
+      } else if (bounsAvailable > this.bouns) {
+        //可用积分等于会员积分123
+        this.bounsAvailable = this.bouns;
+        //抵扣金额等于（会员积分/每使用xx积分）*抵扣XX元
+        this.deductibleAmount = String(currency((this.bouns / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
+      } else {
+        //可用积分等于单笔最多使用积分
+        this.bounsAvailable = this.bounsCondition.max_reduce_bonus;
+        //抵扣金额等于（单笔最多使用积分/每使用xx积分）*抵扣XX元
+        this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
+      }
+    },
     submit() {
-      console.log(this.$wechat);
+      // console.log(this.$wechat);
     },
     //初始化方法
     Initialization() {
@@ -255,7 +250,7 @@ export default {
           this.$vux.toast.text('余额不足，请充值', 'bottom')
         } else {
           //开关打开，选择会员支付或微信支付
-          this.balance = newVal;
+          this.balance = newVal
           if (newVal) {
             this.payment = "会员支付";
           } else {
@@ -266,11 +261,45 @@ export default {
     },
     //点击优惠券调用方法
     integralClick() {
-      this.integralShow = true;
+      if (this.payAmount == '0.00') {
+        return this.$vux.toast.text('请检查金额', 'bottom');
+      }
+      // 显示
+      this.$vux.loading.show({
+        text: '加载中'
+      })
+      let para = {
+        mid: (!this.$route.query.mid || this.$route.querymid == '') ? '' : this.$route.query.mid,
+        cardOpenId: (!this.$route.query.cardOpenId || this.$route.query.cardOpenId == '') ? '' : this.$route.query.cardOpenId
+      }
+      queryCoupon(para).then((res) => {
+        let {
+          status,
+          data,
+          message
+        } = res
+        if (status == 200) {
+          this.integralShow = true;
+          this.payAmount = String(currency(this.payAmount).add(this.amountCoupon));
+          this.inlineDescList = data.wdCouponList;
+        }
+        // 隐藏
+        this.$vux.loading.hide()
+      })
     },
     integralSubmilt(value) {
       this.integralShow = false;
-      console.log(value);
+      this.amountCoupon = value.cash_reduce_cost;
+      if (value.length == 0) {
+        this.$refs.redCoupon.style.color = '#666';
+        this.coupon = "未使用";
+      } else {
+        this.$refs.redCoupon.style.color = '#f74c31';
+        this.coupon = "￥-" + currency(value.cash_reduce_cost);
+        this.payAmount = String(currency(this.payAmount).subtract(this.amountCoupon));
+        this.consumeAmountDeputy();
+      }
+
     },
     logomsg(msg) {
       //当前输入值

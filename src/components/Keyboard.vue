@@ -18,7 +18,7 @@
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        .text {
+        .text-done {
             color: #007eff;
             font-size: 14px;
             font-weight: bolder;
@@ -98,7 +98,7 @@
   <div class="keyboard animated" v-show="show" @touchstart.stop.prevent="fn">
     <!-- 完成 按钮-->
     <div class="done">
-      <p class="text" @touchstart="complete">完成</p>
+      <p class="text-done" @touchstart="complete">完成</p>
     </div>
     <!-- 键盘区域 -->
     <div class="list">
