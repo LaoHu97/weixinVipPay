@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Index from '@/views/Index'
-import KeyboardInput from '@/components/KeyboardInput.vue'
+import Error from '@/views/Error'
 
 Vue.use(Router)
 
@@ -12,6 +12,11 @@ export default new Router({
       path: '/',
       name: 'Index',
       component: Index
+    },
+    {
+      path: '/err',
+      name: 'error',
+      component: Error
     }
   ]
 })

@@ -86,7 +86,9 @@ export default {
       this.$emit('integralSubmilt', value);
     }
   },
-  mounted() {}
+  mounted() {
+    console.log(this.inlineDescList);
+  }
 }
 </script>
 

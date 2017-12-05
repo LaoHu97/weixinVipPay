@@ -157,6 +157,10 @@ export default {
     // console.log(this.$route.query.mid);
   },
   methods: {
+    /**
+     * [consumeAmountDeputy 计算积分抵现方法]
+     * @return {[type]} [可用积分与抵扣金额]
+     */
     consumeAmountDeputy() {
       //当前金额最多可用积分为当前 “（应付金额*每使用xx积分）/抵扣XX元 ”
       let bounsAvailable = parseInt((this.payAmount * this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
@@ -180,25 +184,29 @@ export default {
       }
     },
     submit() {
-      // console.log(this.$wechat);
+      console.log(this.$wechat);
     },
     //初始化方法
     Initialization() {
+      // 显示
+      this.$vux.loading.show({
+        text: '请稍候'
+      })
       let para = {
-        'openCode': (!this.$route.query.code || this.$route.query.code == '') ? '' : this.$route.query.code,
-        'state': (!this.$route.query.state || this.$route.query.state == '') ? '' : this.$route.query.state,
-        'eid': (!this.$route.query.eid || this.$route.query.eid == '') ? '' : this.$route.query.eid,
-        'mid': (!this.$route.query.mid || this.$route.querymid == '') ? '' : this.$route.query.mid,
-        'sid': this.$route.query.entType == 2 ? this.$route.query.sid : '',
-        'cardCode': (!this.$route.query.cardCode || this.$route.query.cardCode == '') ? '' : this.$route.query.cardCode,
-        'cardOpenId': (!this.$route.query.cardOpenId || this.$route.query.cardOpenId == '') ? '' : this.$route.query.cardOpenId,
-        'cardId': (!this.$route.query.cardId || this.$route.query.cardId == '') ? '' : this.$route.query.cardId,
-        'type': (!this.$route.query.type || this.$route.query.type == '') ? '' : this.$route.query.type,
-        'scene': 'W',
-        'entType': (!this.$route.query.entType || this.$route.query.entType == '') ? '' : this.$route.query.entType,
-        'isInitCode': (!this.$route.query.openId || this.$route.query.openId == '') ? null : '1',
-        'payOpenId': this.$route.query.model == 'FT' ? this.$route.query.openid : this.$route.query.openId,
-        'model': (!this.$route.query.model || this.$route.query.model == '') ? '' : this.$route.query.model
+        openCode: (!this.$route.query.code || this.$route.query.code == '') ? '' : this.$route.query.code,
+        state: (!this.$route.query.state || this.$route.query.state == '') ? '' : this.$route.query.state,
+        eid: (!this.$route.query.eid || this.$route.query.eid == '') ? '' : this.$route.query.eid,
+        mid: (!this.$route.query.mid || this.$route.querymid == '') ? '' : this.$route.query.mid,
+        sid: this.$route.query.entType == 2 ? this.$route.query.sid : '',
+        cardCode: (!this.$route.query.cardCode || this.$route.query.cardCode == '') ? '' : this.$route.query.cardCode,
+        cardOpenId: (!this.$route.query.cardOpenId || this.$route.query.cardOpenId == '') ? '' : this.$route.query.cardOpenId,
+        cardId: (!this.$route.query.cardId || this.$route.query.cardId == '') ? '' : this.$route.query.cardId,
+        type: (!this.$route.query.type || this.$route.query.type == '') ? '' : this.$route.query.type,
+        scene: 'W',
+        entType: (!this.$route.query.entType || this.$route.query.entType == '') ? '' : this.$route.query.entType,
+        isInitCode: (!this.$route.query.openId || this.$route.query.openId == '') ? null : '1',
+        payOpenId: this.$route.query.model == 'FT' ? this.$route.query.openid : this.$route.query.openId,
+        model: (!this.$route.query.model || this.$route.query.model == '') ? '' : this.$route.query.model
       }
       getPayMemInfoNew(para).then((res) => {
         let {
@@ -215,8 +223,12 @@ export default {
           this.bounsCondition.least_money_to_use_bonus = res.data.least_money_to_use_bonus;
           this.bounsCondition.max_reduce_bonus = res.data.max_reduce_bonus;
         } else {
-
+          this.$router.push({
+            path: '/err'
+          })
         }
+        // 隐藏
+        this.$vux.loading.hide()
       })
     },
     //积分抵现Switch
