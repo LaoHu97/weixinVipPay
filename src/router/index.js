@@ -1,7 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Index from '@/views/Index'
-import Error from '@/views/Error'
+const Index = () => import('@/views/Index')
+const Error = () => import('@/views/Error')
+const Commer = () => import('@/views/Commer')
 
 Vue.use(Router)
 
@@ -17,6 +18,11 @@ export default new Router({
       path: '/err',
       name: 'error',
       component: Error
+    },
+    {
+      path: '/commer',
+      name: 'commer',
+      component: Commer
     }
   ]
 })
