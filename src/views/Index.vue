@@ -46,7 +46,8 @@
 import currency from 'currency'
 import {
   getPayMemInfoNew,
-  queryCoupon
+  queryCoupon,
+  getPrepayInfoNew
 } from '../api.js'
 import keyboardinput from '../components/KeyboardInput.vue'
 import popupvoucher from '../components/popupVoucher.vue'
@@ -122,7 +123,14 @@ export default {
         reduce_money: '' //抵扣xx元
       },
       coupon: '未使用',
-      amountCoupon: ''
+      amountCoupon: '',
+      //下单数据
+      pay: {
+        oid: '',
+        least_cost: '',
+        couponCode: '',
+        couponId: ''
+      }
     }
   },
   watch: {　　　
@@ -136,11 +144,11 @@ export default {
       //如果输入金额等于“0.00”
       if (curVal == "0.00") {　　
         //会员余额关闭
-        this.balance = false,
-          //积分抵现关闭
-          this.bounSwitch = false,
-          //会员余额不可用
-          this.balanceDisabled = true;
+        this.balance = false;
+        //积分抵现关闭
+        this.bounSwitch = false;
+        //会员余额不可用
+        this.balanceDisabled = true;
         //积分抵现不可用
         this.bounsDisabled = true;
       } else {
@@ -183,9 +191,73 @@ export default {
         this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
       }
     },
+    //确认买单
     submit() {
-      console.log(this.$wechat);
+      if (this.payAmount == '0.00') {
+        return this.$vux.toast.text('请检查金额', 'bottom');
+      }
+      let para = {
+        mid: this.$route.query.mid,
+        sid: this.$route.query.sid,
+        eid: this.$route.query.eid,
+        oid: this.pay.oid,
+        amount: this.payAmount,
+        desc: '',
+        type: '1',
+        scene: 'W',
+        cardCode: this.$route.query.cardCode,
+        cardOpenId: this.$route.query.cardOpenId,
+        cardId: this.$route.query.cardId,
+        orgAmt: this.consumeAmount,
+        discount: currency(this.consumeAmount).multiply(this.discountText),
+        bounsDeduct: this.deductibleAmount,
+        couponDeduct: this.amountCoupon,
+        discountUnit: this.discountText,
+        useBouns: this.bouns,
+        cost_bonus_unit: this.bounsRule.cost_bonus_unit,
+        reduce_money: this.bounsRule.reduce_money,
+        least_money_to_use_bonus: this.bounsCondition.least_money_to_use_bonus,
+        max_reduce_bonus: this.bounsCondition.max_reduce_bonus,
+        least_cost: this.pay.least_cost,
+        reduce_cost: this.amountCoupon,
+        couponCode: this.pay.couponCode,
+        couponId: this.pay.couponId,
+      }
+      getPrepayInfoNew(para).then((res) => {
+        let {
+          status,
+          message
+        } = res;
+        if (status == 200) {
+          this.$wechat.config({
+            debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+            appId: '', // 必填，公众号的唯一标识
+            timestamp: '', // 必填，生成签名的时间戳
+            nonceStr: '', // 必填，生成签名的随机串
+            signature: '', // 必填，签名，见附录1
+            jsApiList: ['chooseWXPay'] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+          })
+          this.$wechat.ready(function() {
+            this.$wechat.chooseWXPay({
+              timestamp: 0, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+              nonceStr: '', // 支付签名随机串，不长于 32 位
+              package: '', // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
+              signType: '', // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
+              paySign: '', // 支付签名
+              success: function(res) {
+                // 支付成功后的回调函数
+
+              }
+            });
+          });
+          this.$wechat.error(function() {
+
+          });
+        }
+      })
     },
+    //微信支付初始化
+
     //初始化方法
     Initialization() {
       // 显示
@@ -219,9 +291,12 @@ export default {
           this.availableBalance = String(currency(res.data.balance));
           this.bouns = res.data.bouns;
           this.bounsRule.cost_bonus_unit = res.data.cost_bonus_unit;
-          this.bounsRule.reduce_money = res.data.reduce_money;
-          this.bounsCondition.least_money_to_use_bonus = res.data.least_money_to_use_bonus;
+          //单位元转化为分
+          this.bounsRule.reduce_money = res.data.reduce_money / 100;
+          this.bounsCondition.least_money_to_use_bonus = res.data.least_money_to_use_bonus / 100;
           this.bounsCondition.max_reduce_bonus = res.data.max_reduce_bonus;
+          //下单数据
+          this.pay.oid = res.data.payOpenId
         } else {
           this.$router.push({
             path: '/err'
@@ -306,6 +381,10 @@ export default {
         this.$refs.redCoupon.style.color = '#666';
         this.coupon = "未使用";
       } else {
+        this.pay.least_cost = value.least_cost;
+        this.couponCode = value.couponCode;
+        this.couponId = value.couponId;
+
         this.$refs.redCoupon.style.color = '#f74c31';
         this.coupon = "￥-" + currency(value.cash_reduce_cost);
         this.payAmount = String(currency(this.payAmount).subtract(this.amountCoupon));

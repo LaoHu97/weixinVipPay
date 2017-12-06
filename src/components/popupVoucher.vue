@@ -13,7 +13,7 @@
           <flexbox>
             <flexbox-item :span="4">
               <div class="amount">
-                <span>￥</span>{{item.cash_reduce_cost}}
+                <span>￥</span>{{item.cash_reduce_cost/100}}
               </div>
             </flexbox-item>
             <flexbox-item>
