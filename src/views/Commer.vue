@@ -19,7 +19,6 @@ import {
   Box,
   XButton
 } from 'vux'
-
 export default {
   components: {
     FormPreview,

@@ -74,7 +74,7 @@ const webpackConfig = {
     ]
   },
   plugins: [
-    new ExtractTextPlugin("./static/css/styles.css"),
+    new ExtractTextPlugin("./test/css/styles.css"),
   ]
 }
 module.exports = vuxLoader.merge(webpackConfig, {

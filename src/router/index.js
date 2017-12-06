@@ -4,10 +4,11 @@ const Index = () => import('@/views/Index')
 const Error = () => import('@/views/Error')
 const Commer = () => import('@/views/Commer')
 
+
 Vue.use(Router)
 
 export default new Router({
-  mode: 'history',
+  // mode: 'history',
   routes: [
     {
       path: '/',

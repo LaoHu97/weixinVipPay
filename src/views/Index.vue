@@ -21,7 +21,7 @@
     </cell>
     <cell class="vip_list" is-link @click.native="integralClick()">
       <span slot="title"><span style="vertical-align:middle;">优惠券抵扣</span>
-      <!-- <badge :text="badgeText" style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge> -->
+      <badge :text="badgeText" style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge>
       </span>
       <span slot style="color:#666;" ref="redCoupon">{{coupon}}</span>
     </cell>
@@ -43,6 +43,10 @@
 </template>
 
 <script>
+import wx from 'weixin-js-sdk'
+import {
+  querystring
+} from 'vux'
 import currency from 'currency'
 import {
   getPayMemInfoNew,
@@ -160,9 +164,10 @@ export default {
     }
   },
   created() {
+    console.log(querystring.parse());
     // `this` 指向 vm 实例
     this.Initialization();
-    // console.log(this.$route.query.mid);
+    // console.log(querystring.parse().mid);
   },
   methods: {
     /**
@@ -193,71 +198,73 @@ export default {
     },
     //确认买单
     submit() {
-      if (this.payAmount == '0.00') {
-        return this.$vux.toast.text('请检查金额', 'bottom');
-      }
+      // if (this.payAmount == '0.00') {
+      //   return this.$vux.toast.text('请检查金额', 'bottom');
+      // }
       let para = {
-        mid: this.$route.query.mid,
-        sid: this.$route.query.sid,
-        eid: this.$route.query.eid,
+        mid: querystring.parse().mid,
+        sid: querystring.parse().sid,
+        eid: querystring.parse().eid,
         oid: this.pay.oid,
         amount: this.payAmount,
         desc: '',
         type: '1',
         scene: 'W',
-        cardCode: this.$route.query.cardCode,
-        cardOpenId: this.$route.query.cardOpenId,
-        cardId: this.$route.query.cardId,
+        cardCode: querystring.parse().cardCode,
+        cardOpenId: querystring.parse().cardOpenId,
+        cardId: querystring.parse().cardId,
         orgAmt: this.consumeAmount,
-        discount: currency(this.consumeAmount).multiply(this.discountText),
+        discount: String(currency(this.consumeAmount).multiply(this.discountText)),
         bounsDeduct: this.deductibleAmount,
-        couponDeduct: this.amountCoupon,
-        discountUnit: this.discountText,
-        useBouns: this.bouns,
-        cost_bonus_unit: this.bounsRule.cost_bonus_unit,
-        reduce_money: this.bounsRule.reduce_money,
-        least_money_to_use_bonus: this.bounsCondition.least_money_to_use_bonus,
-        max_reduce_bonus: this.bounsCondition.max_reduce_bonus,
-        least_cost: this.pay.least_cost,
-        reduce_cost: this.amountCoupon,
+        couponDeduct: String(this.amountCoupon),
+        discountUnit: String(this.discountText),
+        useBouns: String(this.bounsAvailable),
+        cost_bonus_unit: String(this.bounsRule.cost_bonus_unit),
+        reduce_money: String(this.bounsRule.reduce_money * 100),
+        least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus * 100),
+        max_reduce_bonus: String(this.bounsCondition.max_reduce_bonus),
+        least_cost: String(this.pay.least_cost),
+        reduce_cost: String(this.amountCoupon),
         couponCode: this.pay.couponCode,
         couponId: this.pay.couponId,
+        url: window.location.href.split('#')[0]
       }
+      para.bounsDeduct = this.bounSwitch ? String(this.deductibleAmount) : '';
+      para.useBouns = this.bounSwitch ? String(this.bounsAvailable) : '';
       getPrepayInfoNew(para).then((res) => {
         let {
           status,
+          data,
           message
         } = res;
         if (status == 200) {
-          this.$wechat.config({
+          wx.config({
             debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
-            appId: '', // 必填，公众号的唯一标识
-            timestamp: '', // 必填，生成签名的时间戳
-            nonceStr: '', // 必填，生成签名的随机串
-            signature: '', // 必填，签名，见附录1
+            appId: data.configinfo.appId, // 必填，公众号的唯一标识
+            timestamp: data.configinfo.timestamp, // 必填，生成签名的时间戳
+            nonceStr: data.configinfo.noncestr, // 必填，生成签名的随机串
+            signature: data.configinfo.configSign, // 必填，签名，见附录1
             jsApiList: ['chooseWXPay'] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
           })
-          this.$wechat.ready(function() {
-            this.$wechat.chooseWXPay({
-              timestamp: 0, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
-              nonceStr: '', // 支付签名随机串，不长于 32 位
-              package: '', // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
-              signType: '', // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
-              paySign: '', // 支付签名
+          wx.ready(function() {
+            wx.chooseWXPay({
+              timestamp: data.resultMap.timeStamp, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+              nonceStr: data.resultMap.nonceStr, // 支付签名随机串，不长于 32 位
+              package: data.resultMap.packages, // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
+              signType: data.resultMap.signType, // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
+              paySign: data.resultMap.paySign, // 支付签名
               success: function(res) {
                 // 支付成功后的回调函数
 
               }
             });
           });
-          this.$wechat.error(function() {
+          wx.error(function() {
 
           });
         }
       })
     },
-    //微信支付初始化
-
     //初始化方法
     Initialization() {
       // 显示
@@ -265,20 +272,20 @@ export default {
         text: '请稍候'
       })
       let para = {
-        openCode: (!this.$route.query.code || this.$route.query.code == '') ? '' : this.$route.query.code,
-        state: (!this.$route.query.state || this.$route.query.state == '') ? '' : this.$route.query.state,
-        eid: (!this.$route.query.eid || this.$route.query.eid == '') ? '' : this.$route.query.eid,
-        mid: (!this.$route.query.mid || this.$route.querymid == '') ? '' : this.$route.query.mid,
-        sid: this.$route.query.entType == 2 ? this.$route.query.sid : '',
-        cardCode: (!this.$route.query.cardCode || this.$route.query.cardCode == '') ? '' : this.$route.query.cardCode,
-        cardOpenId: (!this.$route.query.cardOpenId || this.$route.query.cardOpenId == '') ? '' : this.$route.query.cardOpenId,
-        cardId: (!this.$route.query.cardId || this.$route.query.cardId == '') ? '' : this.$route.query.cardId,
-        type: (!this.$route.query.type || this.$route.query.type == '') ? '' : this.$route.query.type,
+        openCode: (!querystring.parse().code || querystring.parse().code == '') ? '' : querystring.parse().code,
+        state: (!querystring.parse().state || querystring.parse().state == '') ? '' : querystring.parse().state,
+        eid: (!querystring.parse().eid || querystring.parse().eid == '') ? '' : querystring.parse().eid,
+        mid: (!querystring.parse().mid || querystring.parse().mid == '') ? '' : querystring.parse().mid,
+        sid: querystring.parse().entType == 2 ? querystring.parse().sid : '',
+        cardCode: (!querystring.parse().cardCode || querystring.parse().cardCode == '') ? '' : querystring.parse().cardCode,
+        cardOpenId: (!querystring.parse().cardOpenId || querystring.parse().cardOpenId == '') ? '' : querystring.parse().cardOpenId,
+        cardId: (!querystring.parse().cardId || querystring.parse().cardId == '') ? '' : querystring.parse().cardId,
+        type: (!querystring.parse().type || querystring.parse().type == '') ? '' : querystring.parse().type,
         scene: 'W',
-        entType: (!this.$route.query.entType || this.$route.query.entType == '') ? '' : this.$route.query.entType,
-        isInitCode: (!this.$route.query.openId || this.$route.query.openId == '') ? null : '1',
-        payOpenId: this.$route.query.model == 'FT' ? this.$route.query.openid : this.$route.query.openId,
-        model: (!this.$route.query.model || this.$route.query.model == '') ? '' : this.$route.query.model
+        entType: (!querystring.parse().entType || querystring.parse().entType == '') ? '' : querystring.parse().entType,
+        isInitCode: (!querystring.parse().openId || querystring.parse().openId == '') ? null : '1',
+        payOpenId: querystring.parse().model == 'FT' ? querystring.parse().openid : querystring.parse().openId,
+        model: (!querystring.parse().model || querystring.parse().model == '') ? '' : querystring.parse().model
       }
       getPayMemInfoNew(para).then((res) => {
         let {
@@ -298,9 +305,9 @@ export default {
           //下单数据
           this.pay.oid = res.data.payOpenId
         } else {
-          this.$router.push({
-            path: '/err'
-          })
+          // this.$router.push({
+          //   path: '/err'
+          // })
         }
         // 隐藏
         this.$vux.loading.hide()
@@ -312,7 +319,7 @@ export default {
       if (this.bounsDisabled) {
         this.$vux.toast.text('请输入金额', 'bottom')
         //否则如果输入金额小于“满多少金额可用”，提示****
-      } else if (this.consumeAmount < this.bounsCondition.least_money_to_use_bonus) {
+      } else if (this.payAmount < this.bounsCondition.least_money_to_use_bonus) {
         this.$vux.toast.text('满' + this.bounsCondition.least_money_to_use_bonus + '元可用', 'bottom')
       } else {
         //打开开关或者关闭开关
@@ -356,8 +363,9 @@ export default {
         text: '加载中'
       })
       let para = {
-        mid: (!this.$route.query.mid || this.$route.querymid == '') ? '' : this.$route.query.mid,
-        cardOpenId: (!this.$route.query.cardOpenId || this.$route.query.cardOpenId == '') ? '' : this.$route.query.cardOpenId
+        amount: String(currency(this.consumeAmount).multiply(this.discountText)),
+        mid: (!querystring.parse().mid || querystring.parse().mid == '') ? '' : querystring.parse().mid,
+        cardOpenId: (!querystring.parse().cardOpenId || querystring.parse().cardOpenId == '') ? '' : querystring.parse().cardOpenId
       }
       queryCoupon(para).then((res) => {
         let {
@@ -376,23 +384,24 @@ export default {
     },
     integralSubmilt(value) {
       this.integralShow = false;
-      this.amountCoupon = value.cash_reduce_cost;
+      this.amountCoupon = value.cash_reduce_cost / 100;
       if (value.length == 0) {
         this.$refs.redCoupon.style.color = '#666';
         this.coupon = "未使用";
       } else {
-        this.pay.least_cost = value.least_cost;
+        this.pay.least_cost = value.cash_least_cost;
         this.couponCode = value.couponCode;
         this.couponId = value.couponId;
 
         this.$refs.redCoupon.style.color = '#f74c31';
-        this.coupon = "￥-" + currency(value.cash_reduce_cost);
+        this.coupon = "￥-" + currency(value.cash_reduce_cost / 100);
         this.payAmount = String(currency(this.payAmount).subtract(this.amountCoupon));
         this.consumeAmountDeputy();
       }
 
     },
     logomsg(msg) {
+      this.bounSwitch = false;
       //当前输入值
       this.consumeAmount = msg;
       //计算出折扣后多少
