@@ -13,6 +13,10 @@
 </div>
 </template>
 <script>
+import currency from 'currency'
+import {
+  queryAd,
+} from '../api.js'
 import {
   FormPreview,
   Icon,
@@ -40,6 +44,24 @@ export default {
   methods: {
     submit() {
       this.$wechat.closeWindow();
+    },
+    query() {
+      let para = {
+        orderid: String(JSON.parse(sessionStorage.getItem('out_trade_no'))),
+        orderType: JSON.parse(sessionStorage.getItem('orderType'))
+      }
+      queryAd(para).then((res) => {
+        let {
+          status,
+          message
+        } = res;
+        if (status == 200) {
+          this.list = res.data.itemsList;
+          this.amount = "￥" + currency(res.data.amount);
+          this.mname = res.data.mname;
+          this.adUrl = res.data.adUrl;
+        }
+      })
     }
   },
   mounted() {
@@ -48,29 +70,30 @@ export default {
     } else {
       this.screenHeight.height = window.innerHeight + "px";
     };
-    let orderid = JSON.parse(sessionStorage.getItem('out_trade_no'));
-    let orderType = JSON.parse(sessionStorage.getItem('orderType'));
-    var that = this;
-    that.$http({
-      method: 'post',
-      url: COURSES + '/ad/queryAd',
-      data: {
-        'orderid': String(orderid),
-        'orderType': String(orderType)
-      }
-    }).then(function(res) {
-      let {
-        status
-      } = res.data;
-      if (status == 200) {
-        that.list = res.data.data.itemsList;
-        that.amount = "￥" + res.data.data.amount;
-        that.mname = res.data.data.mname;
-        that.adUrl = res.data.data.adUrl;
-      } else {
-
-      }
-    });
+    this.query();
+    // let orderid = JSON.parse(sessionStorage.getItem('out_trade_no'));
+    // let orderType = JSON.parse(sessionStorage.getItem('orderType'));
+    // var that = this;
+    // that.$http({
+    //   method: 'post',
+    //   url: '/ad/queryAd',
+    //   data: {
+    //     'orderid': String(orderid),
+    //     'orderType': String(orderType)
+    //   }
+    // }).then(function(res) {
+    //   let {
+    //     status
+    //   } = res.data;
+    //   if (status == 200) {
+    //     that.list = res.data.data.itemsList;
+    //     that.amount = "￥" + res.data.data.amount;
+    //     that.mname = res.data.data.mname;
+    //     that.adUrl = res.data.data.adUrl;
+    //   } else {
+    //
+    //   }
+    // });
   }
 }
 </script>

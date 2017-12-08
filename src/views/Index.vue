@@ -39,19 +39,37 @@
       <x-button type="primary" class="button" @click.native="submit">确认买单</x-button>
     </flexbox-item>
   </flexbox>
+  <!-- 输入支付密码 -->
+  <div v-transfer-dom>
+    <x-dialog v-model="payPassword">
+      <icon type="clear" style="float:left;margin:20px 0 0 15px" @click.native="payPassword=false"></icon>
+      <h4 style="margin:1em ">支付&nbsp;&nbsp;&nbsp;</h4>
+      <div style="width:100%;height:1px;background-color:#1aad19 "></div>
+      <h2>￥{{vipPay.amount}}</h2>
+      <box gap="0 25px ">
+        <x-input class="dialog_input " v-model="vipPay.password" placeholder="请输入支付密码 " :max="6" :show-clear="false " type="password" placeholder-align="center " text-align="center "></x-input>
+      </box>
+      <box gap="25px 25px 15px 25px ">
+        <x-button type="primary " @click.native="submitFormVIP">确认支付</x-button>
+      </box>
+    </x-dialog>
+  </div>
 </div>
 </template>
 
 <script>
 import wx from 'weixin-js-sdk'
 import {
-  querystring
+  querystring,
+  md5
 } from 'vux'
 import currency from 'currency'
 import {
-  getPayMemInfoNew,
+  getPayMemInfo,
   queryCoupon,
-  getPrepayInfoNew
+  getPrepayInfo,
+  getPayInfoByMemCard,
+  updateMempayInfo
 } from '../api.js'
 import keyboardinput from '../components/KeyboardInput.vue'
 import popupvoucher from '../components/popupVoucher.vue'
@@ -68,6 +86,9 @@ import {
   XSwitch,
   Flexbox,
   FlexboxItem,
+  XDialog,
+  Box,
+  Icon
 } from 'vux'
 export default {
   name: 'KeyboardInput',
@@ -88,7 +109,10 @@ export default {
     keyboardinput,
     Flexbox,
     FlexboxItem,
-    popupvoucher
+    popupvoucher,
+    XDialog,
+    Box,
+    Icon
   },
   data() {
     return {
@@ -111,6 +135,7 @@ export default {
       memberBalance: '', //会员卡使用后余额
       availableBalance: '', //会员卡未使用余额
       payment: '微信支付', //支付方式
+      payPassword: false,
 
       bouns: '', //会员积分
       bounSwitch: false, //积分抵现默认关闭
@@ -134,6 +159,15 @@ export default {
         least_cost: '',
         couponCode: '',
         couponId: ''
+      },
+      vipPay: {
+        id: '',
+        memId: '',
+        pwd: '',
+        password: '',
+        amount: '',
+        deductOrderId: '',
+        deductTransId: ''
       }
     }
   },
@@ -164,7 +198,6 @@ export default {
     }
   },
   created() {
-    console.log(querystring.parse());
     // `this` 指向 vm 实例
     this.Initialization();
     // console.log(querystring.parse().mid);
@@ -198,71 +231,198 @@ export default {
     },
     //确认买单
     submit() {
-      // if (this.payAmount == '0.00') {
-      //   return this.$vux.toast.text('请检查金额', 'bottom');
-      // }
-      let para = {
-        mid: querystring.parse().mid,
-        sid: querystring.parse().sid,
-        eid: querystring.parse().eid,
-        oid: this.pay.oid,
-        amount: this.payAmount,
-        desc: '',
-        type: '1',
-        scene: 'W',
-        cardCode: querystring.parse().cardCode,
-        cardOpenId: querystring.parse().cardOpenId,
-        cardId: querystring.parse().cardId,
-        orgAmt: this.consumeAmount,
-        discount: String(currency(this.consumeAmount).multiply(this.discountText)),
-        bounsDeduct: this.deductibleAmount,
-        couponDeduct: String(this.amountCoupon),
-        discountUnit: String(this.discountText),
-        useBouns: String(this.bounsAvailable),
-        cost_bonus_unit: String(this.bounsRule.cost_bonus_unit),
-        reduce_money: String(this.bounsRule.reduce_money * 100),
-        least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus * 100),
-        max_reduce_bonus: String(this.bounsCondition.max_reduce_bonus),
-        least_cost: String(this.pay.least_cost),
-        reduce_cost: String(this.amountCoupon),
-        couponCode: this.pay.couponCode,
-        couponId: this.pay.couponId,
-        url: window.location.href.split('#')[0]
+      if (this.payAmount == '0.00') {
+        return this.$vux.toast.text('请检查金额', 'bottom');
       }
-      para.bounsDeduct = this.bounSwitch ? String(this.deductibleAmount) : '';
-      para.useBouns = this.bounSwitch ? String(this.bounsAvailable) : '';
-      getPrepayInfoNew(para).then((res) => {
+      // 显示
+      this.$vux.loading.show({
+        text: '请稍候'
+      })
+      if (this.payment == "微信支付") {
+        let para = {
+          mid: querystring.parse().mid,
+          sid: querystring.parse().sid,
+          eid: querystring.parse().eid,
+          oid: this.pay.oid,
+          amount: this.payAmount,
+          desc: '',
+          type: '1',
+          scene: 'W',
+          cardCode: querystring.parse().cardCode,
+          cardOpenId: querystring.parse().cardOpenId,
+          cardId: querystring.parse().cardId,
+          orgAmt: this.consumeAmount,
+          discount: String(currency(this.consumeAmount).multiply(this.discountText)),
+          bounsDeduct: this.deductibleAmount,
+          couponDeduct: String(this.amountCoupon),
+          discountUnit: String(this.discountText),
+          useBouns: String(this.bounsAvailable),
+          cost_bonus_unit: String(this.bounsRule.cost_bonus_unit),
+          reduce_money: String(this.bounsRule.reduce_money * 100),
+          least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus * 100),
+          max_reduce_bonus: String(this.bounsCondition.max_reduce_bonus),
+          least_cost: String(this.pay.least_cost),
+          reduce_cost: String(this.amountCoupon * 100),
+          couponCode: this.pay.couponCode,
+          couponId: String(this.pay.couponId),
+          edition: '2.0.0',
+          url: window.location.href.split('#')[0]
+        }
+        para.bounsDeduct = this.bounSwitch ? String(this.deductibleAmount) : '';
+        para.useBouns = this.bounSwitch ? String(this.bounsAvailable) : '';
+        getPrepayInfo(para).then((res) => {
+          var _this = this;
+          let {
+            status,
+            data,
+            message
+          } = res;
+          if (status == 200) {
+            let out_trade_no = data.out_trade_no;
+            sessionStorage.setItem('out_trade_no', JSON.stringify(out_trade_no));
+            var orderType = "";
+            sessionStorage.setItem('orderType', JSON.stringify(orderType));
+            wx.config({
+              debug: false, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+              appId: data.appId, // 必填，公众号的唯一标识
+              timestamp: data.timestamp, // 必填，生成签名的时间戳
+              nonceStr: data.noncestr, // 必填，生成签名的随机串
+              signature: data.configSign, // 必填，签名，见附录1
+              jsApiList: ['chooseWXPay'] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+            })
+            wx.ready(function() {
+              wx.chooseWXPay({
+                timestamp: data.timeStamp, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+                nonceStr: data.nonceStr, // 支付签名随机串，不长于 32 位
+                package: data.packages, // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
+                signType: data.signType, // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
+                paySign: data.paySign, // 支付签名
+                success: function(res) {
+                  // 支付成功后的回调函数
+                  _this.$router.push({
+                    path: '/commer',
+                  });
+                },
+                fail: function(res) {
+                  _this.$vux.toast.show({
+                    text: '支付失败',
+                    type: 'warn',
+                    time: 6000,
+                    isShowMask: true
+                  })
+                },
+                cancel: function(res) {
+                  _this.$vux.toast.show({
+                    text: '取消支付',
+                    type: 'warn',
+                    time: 6000,
+                    isShowMask: true
+                  })
+                }
+              });
+            });
+          } else {
+            // 显示
+            _this.$vux.toast.show({
+              text: '下单失败',
+              type: 'warn',
+              time: 6000,
+              isShowMask: true
+            })
+          }
+          // 隐藏
+          this.$vux.loading.hide()
+        })
+      } else if (this.payment == "会员支付") {
+        let para = {
+          mid: querystring.parse().mid,
+          sid: querystring.parse().sid,
+          eid: querystring.parse().eid,
+          oid: this.pay.oid,
+          amount: this.payAmount,
+          desc: '',
+          type: '1',
+          scene: 'W',
+          cardCode: querystring.parse().cardCode,
+          cardOpenId: querystring.parse().cardOpenId,
+          cardId: querystring.parse().cardId,
+          orgAmt: this.consumeAmount,
+          discount: String(currency(this.consumeAmount).multiply(this.discountText)),
+          bounsDeduct: this.deductibleAmount,
+          couponDeduct: String(this.amountCoupon),
+          discountUnit: String(this.discountText),
+          useBouns: String(this.bounsAvailable),
+          cost_bonus_unit: String(this.bounsRule.cost_bonus_unit),
+          reduce_money: String(this.bounsRule.reduce_money * 100),
+          least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus * 100),
+          max_reduce_bonus: String(this.bounsCondition.max_reduce_bonus),
+          least_cost: String(this.pay.least_cost),
+          reduce_cost: String(this.amountCoupon * 100),
+          couponCode: this.pay.couponCode,
+          couponId: String(this.pay.couponId),
+          edition: '2.0.0',
+          url: window.location.href.split('#')[0]
+        }
+        para.bounsDeduct = this.bounSwitch ? String(this.deductibleAmount) : '';
+        para.useBouns = this.bounSwitch ? String(this.bounsAvailable) : '';
+        getPayInfoByMemCard(para).then((res) => {
+          let {
+            status,
+            data,
+            message
+          } = res;
+          if (status == 200) {
+            this.payPassword = true;
+            this.vipPay.deductTransId = data.deductTransId;
+            this.vipPay.deductOrderId = data.deductOrderId;
+            this.vipPay.amount = this.payAmount;
+            this.vipPay.id = data.transId;
+            this.vipPay.memId = data.memAccount.member_id;
+            this.vipPay.pwd = data.checkPw;
+            var out_trade_no = data.out_trade_no;
+            sessionStorage.setItem('out_trade_no', JSON.stringify(out_trade_no));
+            var orderType = "m";
+            sessionStorage.setItem('orderType', JSON.stringify(orderType));
+          } else {
+            // 显示
+            this.$vux.toast.show({
+              text: '下单失败',
+              type: 'warn',
+              time: 6000,
+              isShowMask: true
+            })
+          }
+          // 隐藏
+          this.$vux.loading.hide()
+        })
+      }
+
+    },
+    submitFormVIP() {
+      // 显示
+      this.$vux.loading.show({
+        text: '请稍候'
+      })
+      let para = {
+        id: String(this.vipPay.id),
+        pwd: md5(this.vipPay.password + this.vipPay.pwd),
+        memId: String(this.vipPay.memId),
+        deductOrderId: String(this.vipPay.deductOrderId),
+        deductTransId: String(this.vipPay.deductTransId)
+      }
+      updateMempayInfo(para).then((res) => {
+        console.log(res);
         let {
           status,
-          data,
           message
         } = res;
         if (status == 200) {
-          wx.config({
-            debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
-            appId: data.configinfo.appId, // 必填，公众号的唯一标识
-            timestamp: data.configinfo.timestamp, // 必填，生成签名的时间戳
-            nonceStr: data.configinfo.noncestr, // 必填，生成签名的随机串
-            signature: data.configinfo.configSign, // 必填，签名，见附录1
-            jsApiList: ['chooseWXPay'] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
-          })
-          wx.ready(function() {
-            wx.chooseWXPay({
-              timestamp: data.resultMap.timeStamp, // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
-              nonceStr: data.resultMap.nonceStr, // 支付签名随机串，不长于 32 位
-              package: data.resultMap.packages, // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
-              signType: data.resultMap.signType, // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
-              paySign: data.resultMap.paySign, // 支付签名
-              success: function(res) {
-                // 支付成功后的回调函数
-
-              }
-            });
-          });
-          wx.error(function() {
-
+          this.$router.push({
+            path: '/commer',
           });
         }
+        // 隐藏
+        this.$vux.loading.hide()
       })
     },
     //初始化方法
@@ -287,7 +447,7 @@ export default {
         payOpenId: querystring.parse().model == 'FT' ? querystring.parse().openid : querystring.parse().openId,
         model: (!querystring.parse().model || querystring.parse().model == '') ? '' : querystring.parse().model
       }
-      getPayMemInfoNew(para).then((res) => {
+      getPayMemInfo(para).then((res) => {
         let {
           status,
           message
@@ -303,11 +463,11 @@ export default {
           this.bounsCondition.least_money_to_use_bonus = res.data.least_money_to_use_bonus / 100;
           this.bounsCondition.max_reduce_bonus = res.data.max_reduce_bonus;
           //下单数据
-          this.pay.oid = res.data.payOpenId
+          this.pay.oid = res.data.payOpenId;
         } else {
-          // this.$router.push({
-          //   path: '/err'
-          // })
+          this.$router.push({
+            path: '/err'
+          })
         }
         // 隐藏
         this.$vux.loading.hide()
@@ -340,7 +500,7 @@ export default {
         this.$vux.toast.text('请输入金额', 'bottom')
       } else {
         //如果余额小于输入的金额，则提示
-        if (this.payAmount >= this.availableBalance) {
+        if (parseInt(this.payAmount) >= parseInt(this.availableBalance)) {
           this.$vux.toast.text('余额不足，请充值', 'bottom')
         } else {
           //开关打开，选择会员支付或微信支付
@@ -384,21 +544,38 @@ export default {
     },
     integralSubmilt(value) {
       this.integralShow = false;
-      this.amountCoupon = value.cash_reduce_cost / 100;
-      if (value.length == 0) {
+      if (!value) {
         this.$refs.redCoupon.style.color = '#666';
         this.coupon = "未使用";
+        this.amountCoupon = '';
       } else {
         this.pay.least_cost = value.cash_least_cost;
-        this.couponCode = value.couponCode;
-        this.couponId = value.couponId;
+        this.pay.couponCode = value.code;
+        this.pay.couponId = value.id;
 
         this.$refs.redCoupon.style.color = '#f74c31';
         this.coupon = "￥-" + currency(value.cash_reduce_cost / 100);
+        this.amountCoupon = value.cash_reduce_cost / 100;
         this.payAmount = String(currency(this.payAmount).subtract(this.amountCoupon));
         this.consumeAmountDeputy();
       }
-
+    },
+    severalAvailable(cb) {
+      let para = {
+        amount: cb,
+        mid: (!querystring.parse().mid || querystring.parse().mid == '') ? '' : querystring.parse().mid,
+        cardOpenId: (!querystring.parse().cardOpenId || querystring.parse().cardOpenId == '') ? '' : querystring.parse().cardOpenId
+      }
+      queryCoupon(para).then((res) => {
+        let {
+          status,
+          data,
+          message
+        } = res
+        if (status == 200) {
+          this.badgeText = data.wdCouponList.length + '张可用';
+        }
+      })
     },
     logomsg(msg) {
       this.bounSwitch = false;
@@ -413,6 +590,10 @@ export default {
       this.discount = String(currency(msg).subtract(_val));
       //计算出应付金额
       this.payAmount = String(_val);
+      this.severalAvailable(String(_val));
+      this.$refs.redCoupon.style.color = '#666';
+      this.coupon = "未使用";
+      this.amountCoupon = '';
     }
   },
   mounted() {
@@ -448,5 +629,11 @@ export default {
 }
 .vip_list_fu {
     height: 57px;
+}
+.dialog_input {
+    border: 1px solid #999;
+    padding: 0;
+    height: 35px;
+    border-radius: 5px;
 }
 </style>

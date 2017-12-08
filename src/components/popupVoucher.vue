@@ -1,9 +1,9 @@
 <template lang="html">
   <div class="">
-    <tab>
+    <!-- <tab>
       <tab-item selected @on-item-click="onItemClick">可用优惠券</tab-item>
       <tab-item @on-item-click="onItemClick">不可用优惠券</tab-item>
-    </tab>
+    </tab> -->
     <checker v-model="inlineDescListValue" default-item-class="demo-item" selected-item-class="demo-item-selected" disabled-item-class="demo-item-disabled">
       <checker-item :value="item" v-for="(item, index) in inlineDescList" :key="index" @on-item-click="onItemCheckerClick" style="margin-top:15px;">
         <div class="checker_item_left">
@@ -64,7 +64,7 @@ export default {
   },
   data() {
     return {
-      inlineDescListValue: []
+      inlineDescListValue: ''
     }
   },
   props: {
@@ -82,12 +82,18 @@ export default {
       console.log(index);
     },
     integralSubmilt() {
-      let value = this.inlineDescListValue;
-      this.$emit('integralSubmilt', value);
+      // console.log(.length);
+      if (this.inlineDescList.length) {
+        let value = this.inlineDescListValue;
+        this.$emit('integralSubmilt', value);
+      } else {
+        let value = '';
+        this.$emit('integralSubmilt', value);
+      }
     }
   },
   mounted() {
-    console.log(this.inlineDescList);
+
   }
 }
 </script>

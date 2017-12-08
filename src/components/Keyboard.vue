@@ -1,6 +1,6 @@
 <style scoped lang="less">
 .keyboard {
-    height: 250px;
+    height: 280px;
     width: 100%;
     position: fixed;
     bottom: 0;
@@ -25,7 +25,7 @@
         }
     }
     .list {
-        height: 209.5px;
+        height: 239.5px;
         padding: 8px 8px 0;
         background-color: #e7e7e7;
         .key:active {
