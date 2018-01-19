@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 let base = process.env.API_ROOT;
-
+console.log(base);
 //初始化查询
 export const getPayMemInfo = params => { return axios.post(`${base}/pay/cashier/getPayMemInfo`, params).then(res => res.data); };
 //查询优惠券

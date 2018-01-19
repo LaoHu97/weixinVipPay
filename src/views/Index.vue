@@ -7,7 +7,8 @@
   <group>
     <cell class="vip_list">
       <span slot="title"><span style="vertical-align:middle;">会员优惠</span>
-      <badge :text="discountText * 10+' 折'" style="height:21px;line-height:21px;border-radius:21px;margin-left:25px"></badge>
+      <badge :text="discountText * 10+' 折'" v-if='this.ismem' style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge>
+      <badge text="无会员" v-else style="height:21px;line-height:21px;border-radius:21px;margin-left:15px;border-radius: 3px;background:#fff;border:1px #f74c31 solid;color:#f74c31;"></badge>
       </span>
       <span slot style="color:#f74c31;">￥-{{discount}}</span>
     </cell>
@@ -127,6 +128,7 @@ export default {
       payAmount: '0.00', //应付金额
       deductibleAmount: '0.00', //积分抵扣多少钱
 
+      ismem: false,
       discountText: '', //会员折扣
       discount: '0.00', //会员折扣应减金额
 
@@ -180,7 +182,7 @@ export default {
     consumeAmount(curVal, oldVal) {
       this.consumeAmountDeputy();
       //如果输入金额等于“0.00”
-      if (curVal == "0.00") {　　
+      if (!curVal || !this.ismem) {　　
         //会员余额关闭
         this.balance = false;
         //积分抵现关闭
@@ -189,11 +191,13 @@ export default {
         this.balanceDisabled = true;
         //积分抵现不可用
         this.bounsDisabled = true;
+        console.log('true');
       } else {
         //会员余额可用
         this.balanceDisabled = false;
         //积分抵现可用
         this.bounsDisabled = false;
+        console.log('false');
       }
     }
   },
@@ -209,24 +213,34 @@ export default {
      */
     consumeAmountDeputy() {
       //当前金额最多可用积分为当前 “（应付金额*每使用xx积分）/抵扣XX元 ”
-      let bounsAvailable = parseInt((this.payAmount * this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
+      let bounsAvailable = parseInt(((this.payAmount * 100) * this.bounsRule.cost_bonus_unit) / this.bounsRule.reduce_money);
+      if (!this.ismem) {
+        return
+      }
+      console.log(bounsAvailable);
       //如果单笔最多使用积分大于等于当前金额最多可用积分并且如果会员积分大于等于当前金额最多可用积分
       if (this.bounsCondition.max_reduce_bonus >= bounsAvailable && this.bouns >= bounsAvailable) {
+        console.log("1");
         //可用积分等于当前金额最多可用积分
         this.bounsAvailable = bounsAvailable;
         //当前抵扣金额等于“（当前金额最多可用积分*抵扣XX元）/每使用xx积分”
-        this.deductibleAmount = String(currency((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit));
+        this.deductibleAmount = String(currency(((bounsAvailable * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit) / 100));
         //如果会员积分小于当前金额最多可用积分
-      } else if (bounsAvailable > this.bouns) {
-        //可用积分等于会员积分123
-        this.bounsAvailable = this.bouns;
+      } else if (this.bouns < bounsAvailable) {
+        console.log("2");
         //抵扣金额等于（会员积分/每使用xx积分）*抵扣XX元
-        this.deductibleAmount = String(currency((this.bouns / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
+        let deductibleAmount = ((this.bouns * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit) / 100;
+        this.deductibleAmount = String(currency(Math.floor(deductibleAmount * 100) / 100));
+        //可用积分等于会员积分123
+        this.bounsAvailable = (this.deductibleAmount * 100) * this.bounsRule.cost_bonus_unit;
+        console.log(this.bounsAvailable);
+        console.log(this.bounsRule.cost_bonus_unit);
       } else {
+        console.log("3");
         //可用积分等于单笔最多使用积分
         this.bounsAvailable = this.bounsCondition.max_reduce_bonus;
         //抵扣金额等于（单笔最多使用积分/每使用xx积分）*抵扣XX元
-        this.deductibleAmount = String(currency((this.bounsCondition.max_reduce_bonus / this.bounsRule.cost_bonus_unit) * this.bounsRule.reduce_money));
+        this.deductibleAmount = String(currency(((this.bounsCondition.max_reduce_bonus * this.bounsRule.reduce_money) / this.bounsRule.cost_bonus_unit) / 100));
       }
     },
     //确认买单
@@ -240,6 +254,7 @@ export default {
       })
       if (this.payment == "微信支付") {
         let para = {
+          ismem: this.ismem,
           mid: querystring.parse().mid,
           sid: querystring.parse().sid,
           eid: querystring.parse().eid,
@@ -258,14 +273,14 @@ export default {
           discountUnit: String(this.discountText),
           useBouns: String(this.bounsAvailable),
           cost_bonus_unit: String(this.bounsRule.cost_bonus_unit),
-          reduce_money: String(this.bounsRule.reduce_money * 100),
-          least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus * 100),
+          reduce_money: String(this.bounsRule.reduce_money),
+          least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus),
           max_reduce_bonus: String(this.bounsCondition.max_reduce_bonus),
           least_cost: String(this.pay.least_cost),
           reduce_cost: String(this.amountCoupon * 100),
           couponCode: this.pay.couponCode,
           couponId: String(this.pay.couponId),
-          edition: '2.0.0',
+          version: '3.0.0',
           url: window.location.href.split('#')[0]
         }
         para.bounsDeduct = this.bounSwitch ? String(this.deductibleAmount) : '';
@@ -335,6 +350,7 @@ export default {
         })
       } else if (this.payment == "会员支付") {
         let para = {
+          ismem: this.ismem,
           mid: querystring.parse().mid,
           sid: querystring.parse().sid,
           eid: querystring.parse().eid,
@@ -353,14 +369,14 @@ export default {
           discountUnit: String(this.discountText),
           useBouns: String(this.bounsAvailable),
           cost_bonus_unit: String(this.bounsRule.cost_bonus_unit),
-          reduce_money: String(this.bounsRule.reduce_money * 100),
-          least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus * 100),
+          reduce_money: String(this.bounsRule.reduce_money),
+          least_money_to_use_bonus: String(this.bounsCondition.least_money_to_use_bonus),
           max_reduce_bonus: String(this.bounsCondition.max_reduce_bonus),
           least_cost: String(this.pay.least_cost),
           reduce_cost: String(this.amountCoupon * 100),
           couponCode: this.pay.couponCode,
           couponId: String(this.pay.couponId),
-          edition: '2.0.0',
+          version: '3.0.0',
           url: window.location.href.split('#')[0]
         }
         para.bounsDeduct = this.bounSwitch ? String(this.deductibleAmount) : '';
@@ -452,18 +468,28 @@ export default {
           status,
           message
         } = res;
-        if (status == 200) {
-          this.title = res.data.storeName;
+        this.ismem = res.data.ismem;
+        this.title = res.data.storeName;
+        //下单数据
+        this.pay.oid = res.data.payOpenId;
+        if (status == 200 && res.data.ismem) {
           this.discountText = res.data.discount;
           this.availableBalance = String(currency(res.data.balance));
           this.bouns = res.data.bouns;
           this.bounsRule.cost_bonus_unit = res.data.cost_bonus_unit;
           //单位元转化为分
-          this.bounsRule.reduce_money = res.data.reduce_money / 100;
-          this.bounsCondition.least_money_to_use_bonus = res.data.least_money_to_use_bonus / 100;
+          this.bounsRule.reduce_money = res.data.reduce_money;
+          this.bounsCondition.least_money_to_use_bonus = res.data.least_money_to_use_bonus;
           this.bounsCondition.max_reduce_bonus = res.data.max_reduce_bonus;
-          //下单数据
-          this.pay.oid = res.data.payOpenId;
+        } else if (status == 200 && !res.data.ismem) {
+          this.discountText = res.data.discount;
+          this.availableBalance = '0';
+          this.bouns = '0';
+          this.bounsRule.cost_bonus_unit = '0';
+          //单位元转化为分
+          this.bounsRule.reduce_money = '0';
+          this.bounsCondition.least_money_to_use_bonus = '0';
+          this.bounsCondition.max_reduce_bonus = '0';
         } else {
           this.$router.push({
             path: '/err'
@@ -476,11 +502,15 @@ export default {
     //积分抵现Switch
     bounsClick(newVal, oldVal) {
       //如果开关不可用，提示*****
+      if (!this.ismem) {
+        this.$vux.toast.text('您还不是会员', 'bottom')
+        return
+      }
       if (this.bounsDisabled) {
         this.$vux.toast.text('请输入金额', 'bottom')
         //否则如果输入金额小于“满多少金额可用”，提示****
-      } else if (this.payAmount < this.bounsCondition.least_money_to_use_bonus) {
-        this.$vux.toast.text('满' + this.bounsCondition.least_money_to_use_bonus + '元可用', 'bottom')
+      } else if (currency(this.consumeAmount).multiply(this.discountText) < this.bounsCondition.least_money_to_use_bonus / 100) {
+        this.$vux.toast.text('满' + this.bounsCondition.least_money_to_use_bonus / 100 + '元可用', 'bottom')
       } else {
         //打开开关或者关闭开关
         this.bounSwitch = newVal;
@@ -495,6 +525,10 @@ export default {
     },
     //选择会员支付或微信支付
     balanceClick(newVal, oldVal) {
+      if (!this.ismem) {
+        this.$vux.toast.text('您还不是会员', 'bottom')
+        return
+      }
       //如果开关置灰，表示金额未输入
       if (this.balanceDisabled) {
         this.$vux.toast.text('请输入金额', 'bottom')
